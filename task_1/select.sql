@@ -34,7 +34,7 @@ WHERE id = 127;
 
 -- 8. Оновити ім'я користувача та пошту
 UPDATE users
-SET name = "Ihor Rukavitsyn", email = "ihor@goit.com"
+SET name = "Ihor Rukavitsyn" AND email = "ihor@goit.com"
 WHERE id = 18;
 
 -- 9. Знайти користувачів з певною електронною поштою

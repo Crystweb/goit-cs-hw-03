@@ -1,123 +1,134 @@
-from pymongo import MongoClient
-from pymongo.errors import PyMongoError, ConnectionFailure
+from pymongo import MongoClient, errors
+from bson.objectid import ObjectId
+from pymongo.server_api import ServerApi
 
 # Підключення до MongoDB
+client = MongoClient(
+    "mongodb+srv://goit-test:rVoIjkuy~8DPWi!mV7@testcluster.dwyiq17.mongodb.net/?retryWrites=true&w=majority&appName=TestCluster")
+db = client['pet_database']
+collection = db['pets']
+
+# Перевірка з'єднання
 try:
-    client = MongoClient("mongodb://localhost:27017/")
-    db = client["mydatabase"]
-    collection = db["animals"]
-    # Перевірка з'єднання
-    client.admin.command('ismaster')
-    print("MongoDB підключено успішно")
-except ConnectionFailure:
-    print("Не вдалося підключитися до MongoDB, перевірте з'єднання")
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except errors.PyMongoError as e:
+    print(e)
 
 
-def create_document():
+def create_pet(name, age, features):
     try:
-        name = input("Введіть ім'я пета: ")
-        age = int(input("Введіть вік пета: "))
-        features_input = input("Введіть особливості пета, розділені комою: ")
-        features = features_input.split(", ")
-        document = {"name": name, "age": age, "features": features}
-        collection.insert_one(document)
-        print("Документ створено.")
-    except PyMongoError as e:
-        print(f"Помилка при роботі з MongoDB: {e}")
-    except ValueError as e:
-        print(f"Помилка введення: {e}")
+        pet = {"name": name, "age": age, "features": features}
+        collection.insert_one(pet)
+        print("Pet inserted successfully.")
+    except errors.PyMongoError as e:
+        print(f"An error occurred: {e}")
 
 
-def read_all_documents():
-    documents = list(collection.find({}))
-    for doc in documents:
-        print(doc)
-
-
-def read_document_by_name():
-    name = input("Введіть ім'я пета для пошуку: ")
-    document = collection.find_one({"name": name})
-    print(document)
-
-
-def update_document_age():
+def read_all_pets():
     try:
-        name = input("Введіть ім'я пета для оновлення віку: ")
-        age = int(input("Введіть новий вік пета: "))
-        result = collection.update_one({"name": name}, {"$set": {"age": age}})
-        if result.modified_count > 0:
-            print("Вік пета оновлено.")
+        pets = collection.find()
+        for pet in pets:
+            print(pet)
+    except errors.PyMongoError as e:
+        print(f"An error occurred: {e}")
+
+
+def read_pet_by_name(name):
+    try:
+        pet = collection.find_one({"name": name})
+        if pet:
+            print(pet)
         else:
-            print("Пет не знайдений або вік вже встановлено.")
-    except PyMongoError as e:
-        print(f"Помилка при роботі з MongoDB: {e}")
-    except ValueError as e:
-        print(f"Помилка введення: {e}")
+            print(f"No pet found with name: {name}")
+    except errors.PyMongoError as e:
+        print(f"An error occurred: {e}")
 
 
-def add_feature_to_document():
+def update_pet_age(name, new_age):
     try:
-        name = input("Введіть ім'я пета для додавання особливості: ")
-        feature = input("Введіть особливість, яку хочете додати: ")
-        result = collection.update_one({"name": name}, {"$addToSet": {"features": feature}})
-        if result.modified_count > 0:
-            print("Особливість додано до пета.")
+        result = collection.update_one({"name": name}, {"$set": {"age": new_age}})
+        if result.modified_count:
+            print("Pet age updated successfully.")
         else:
-            print("Пет не знайдений або особливість вже присутня.")
-    except PyMongoError as e:
-        print(f"Помилка при роботі з MongoDB: {e}")
-    except ValueError as e:
-        print(f"Помилка введення: {e}")
+            print(f"No pet found with name: {name}")
+    except errors.PyMongoError as e:
+        print(f"An error occurred: {e}")
 
 
-def delete_document():
+def add_feature_to_pet(name, feature):
     try:
-        name = input("Введіть ім'я пета для видалення: ")
+        result = collection.update_one({"name": name}, {"$push": {"features": feature}})
+        if result.modified_count:
+            print("Feature added successfully.")
+        else:
+            print(f"No pet found with name: {name}")
+    except errors.PyMongoError as e:
+        print(f"An error occurred: {e}")
+
+
+def delete_pet_by_name(name):
+    try:
         result = collection.delete_one({"name": name})
-        if result.deleted_count > 0:
-            print("Документ видалено.")
+        if result.deleted_count:
+            print("Pet deleted successfully.")
         else:
-            print("Пет не знайдений.")
-    except PyMongoError as e:
-        print(f"Помилка при роботі з MongoDB: {e}")
+            print(f"No pet found with name: {name}")
+    except errors.PyMongoError as e:
+        print(f"An error occurred: {e}")
 
 
-def delete_all_documents():
-    collection.delete_many({})
-    print("Усі документи видалено.")
+def delete_all_pets():
+    try:
+        collection.delete_many({})
+        print("All pets deleted successfully.")
+    except errors.PyMongoError as e:
+        print(f"An error occurred: {e}")
 
 
 def main():
-    while True:
-        print("\nДоступні дії:")
-        print("1 - Створити запис про пета")
-        print("2 - Показати всі записи")
-        print("3 - Пошук запису за ім'ям пета")
-        print("4 - Оновити вік пета")
-        print("5 - Додати особливість до пета")
-        print("6 - Видалити запис про пета")
-        print("7 - Видалити всі записи")
-        print("8 - Вийти")
-        choice = input("Виберіть дію: ")
+    print("Welcome to the Pets Database!")
+    print("Available commands: create, read_all, read, update_age, add_feature, delete, delete_all, exit")
 
-        if choice == "1":
-            create_document()
-        elif choice == "2":
-            read_all_documents()
-        elif choice == "3":
-            read_document_by_name()
-        elif choice == "4":
-            update_document_age()
-        elif choice == "5":
-            add_feature_to_document()
-        elif choice == "6":
-            delete_document()
-        elif choice == "7":
-            delete_all_documents()
-        elif choice == "8":
+    while True:
+        command = input("Enter command: ").strip().lower()
+
+        if command == "create":
+            name = input("Enter pet name: ").strip()
+            age = int(input("Enter pet age: ").strip())
+            features = input("Enter pet features (comma-separated): ").strip().split(",")
+            create_pet(name, age, features)
+
+        elif command == "read_all":
+            read_all_pets()
+
+        elif command == "read":
+            name = input("Enter pet name: ").strip()
+            read_pet_by_name(name)
+
+        elif command == "update_age":
+            name = input("Enter pet name: ").strip()
+            new_age = int(input("Enter new age: ").strip())
+            update_pet_age(name, new_age)
+
+        elif command == "add_feature":
+            name = input("Enter pet name: ").strip()
+            feature = input("Enter new feature: ").strip()
+            add_feature_to_pet(name, feature)
+
+        elif command == "delete":
+            name = input("Enter pet name: ").strip()
+            delete_pet_by_name(name)
+
+        elif command == "delete_all":
+            delete_all_pets()
+
+        elif command == "exit":
+            print("Exiting the program. Goodbye!")
             break
+
         else:
-            print("Некоректний вибір. Спробуйте ще раз.")
+            print("Invalid command. Please try again.")
 
 
 if __name__ == "__main__":
