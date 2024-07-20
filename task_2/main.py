@@ -1,6 +1,5 @@
 from pymongo import MongoClient, errors
 from bson.objectid import ObjectId
-from pymongo.server_api import ServerApi
 
 # Підключення до MongoDB
 client = MongoClient(
